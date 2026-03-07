@@ -1,33 +1,26 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { loadData, saveData } from './utils/constants';
-import { isConnected, startAutoSync, stopAutoSync } from './utils/googleSheets';
+import { appendExpenseRow } from './utils/googleSheetsApi';
+import { useGoogleAuth } from './context/GoogleAuthContext';
 import BottomNav from './components/BottomNav';
 import HomePage from './components/HomePage';
 import AddPage from './components/AddPage';
 import AnalysisPage from './components/AnalysisPage';
 import ExportPage from './components/ExportPage';
+import LoginPage from './components/LoginPage';
 
 export default function App() {
   const [data, setData] = useState(loadData);
   const [tab, setTab] = useState('home');
   const [toast, setToast] = useState('');
 
+  const { user, accessToken, sheetId, sheetReady, initializing } = useGoogleAuth();
+  const isLoggedIn = !!user && !!accessToken;
+
   // Persist to localStorage
   useEffect(() => {
     saveData(data);
   }, [data]);
-
-  // Keep a ref to latest data so auto-sync always reads current state
-  const dataRef = useRef(data);
-  dataRef.current = data;
-
-  // Start auto-sync once on mount if connected
-  useEffect(() => {
-    if (isConnected()) {
-      startAutoSync(() => dataRef.current);
-    }
-    return () => stopAutoSync();
-  }, []);
 
   // PWA install prompt
   const [installPrompt, setInstallPrompt] = useState(null);
@@ -37,7 +30,6 @@ export default function App() {
     const handler = (e) => {
       e.preventDefault();
       setInstallPrompt(e);
-      // Show banner if user hasn't dismissed it before
       if (!localStorage.getItem('bw_install_dismissed')) {
         setShowInstallBanner(true);
       }
@@ -50,9 +42,7 @@ export default function App() {
     if (!installPrompt) return;
     installPrompt.prompt();
     const result = await installPrompt.userChoice;
-    if (result.outcome === 'accepted') {
-      showToast('App installed!');
-    }
+    if (result.outcome === 'accepted') showToast('App installed!');
     setInstallPrompt(null);
     setShowInstallBanner(false);
   };
@@ -88,15 +78,49 @@ export default function App() {
   };
 
   const addExpense = (amount, category, note, date) => {
+    const expense = { id: Date.now(), amount: Number(amount), category, note, date };
+
     setData((prev) => ({
       ...prev,
-      expenses: [
-        ...prev.expenses,
-        { id: Date.now(), amount: Number(amount), category, note, date },
-      ],
+      expenses: [...prev.expenses, expense],
     }));
+
     showToast('✅ Expense logged!');
+
+    // Silently sync to Google Sheet if connected
+    if (isLoggedIn && sheetReady && sheetId && accessToken) {
+      appendExpenseRow(accessToken, sheetId, expense).catch(() => {
+        // Silent fail — data is safe in localStorage
+      });
+    }
   };
+
+  // ── Loading screen while restoring session ──────────────────────────────
+
+  if (initializing) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+        background: 'var(--bg)',
+      }}>
+        <div style={{ fontSize: 48 }}>💰</div>
+        <div className="spinner" style={{ width: 28, height: 28 }} />
+      </div>
+    );
+  }
+
+  // ── Login screen if not authenticated ───────────────────────────────────
+
+  if (!isLoggedIn) {
+    return <LoginPage />;
+  }
+
+  // ── Main app ────────────────────────────────────────────────────────────
 
   return (
     <>
