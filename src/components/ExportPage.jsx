@@ -7,6 +7,9 @@ import {
     isConnected,
     syncToSheets,
     testConnection,
+    getSheetViewUrl,
+    saveSheetViewUrl,
+    removeSheetViewUrl,
 } from '../utils/googleSheets';
 
 export default function ExportPage({ data, showToast }) {
@@ -19,6 +22,8 @@ export default function ExportPage({ data, showToast }) {
     const [lastSync, setLastSync] = useState(
         localStorage.getItem('bw_last_sync') || ''
     );
+    const [sheetViewUrl, setSheetViewUrl] = useState(getSheetViewUrl());
+    const [sheetViewInput, setSheetViewInput] = useState(getSheetViewUrl());
 
     useEffect(() => {
         setConnected(isConnected());
@@ -88,6 +93,10 @@ export default function ExportPage({ data, showToast }) {
         }
         saveSheetsUrl(urlInput.trim());
         setSheetsUrl(urlInput.trim());
+        if (sheetViewInput.trim()) {
+            saveSheetViewUrl(sheetViewInput.trim());
+            setSheetViewUrl(sheetViewInput.trim());
+        }
         setShowSetup(false);
 
         // Test connection
@@ -102,8 +111,11 @@ export default function ExportPage({ data, showToast }) {
     const handleDisconnect = () => {
         if (confirm('Disconnect from Google Sheets?')) {
             removeSheetsUrl();
+            removeSheetViewUrl();
             setSheetsUrl('');
             setUrlInput('');
+            setSheetViewUrl('');
+            setSheetViewInput('');
             setLastSync('');
             localStorage.removeItem('bw_last_sync');
             showToast('🔓 Disconnected from Google Sheets');
@@ -228,27 +240,45 @@ export default function ExportPage({ data, showToast }) {
                     )}
                 </div>
 
-                {/* Connected: Show Sync Button */}
+                {/* Connected: Show Sync & View Buttons */}
                 {connected && !showSetup && (
-                    <button
-                        className="btn btn-green"
-                        onClick={handleSync}
-                        disabled={syncing}
-                        style={{
-                            padding: 14,
-                            fontSize: 15,
-                            position: 'relative',
-                            overflow: 'hidden',
-                        }}
-                    >
-                        {syncing ? (
-                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                                <span className="spinner" /> Syncing...
-                            </span>
-                        ) : (
-                            '☁️ Sync to Google Sheets'
+                    <>
+                        <button
+                            className="btn btn-green"
+                            onClick={handleSync}
+                            disabled={syncing}
+                            style={{
+                                padding: 14,
+                                fontSize: 15,
+                                position: 'relative',
+                                overflow: 'hidden',
+                            }}
+                        >
+                            {syncing ? (
+                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                                    <span className="spinner" /> Syncing...
+                                </span>
+                            ) : (
+                                '☁️ Sync to Google Sheets'
+                            )}
+                        </button>
+                        {sheetViewUrl && (
+                            <button
+                                className="btn"
+                                onClick={() => window.open(sheetViewUrl, '_blank')}
+                                style={{
+                                    marginTop: 8,
+                                    padding: 14,
+                                    fontSize: 15,
+                                    background: 'rgba(99, 102, 241, 0.1)',
+                                    border: '1.5px solid rgba(99, 102, 241, 0.3)',
+                                    color: 'var(--accent)',
+                                }}
+                            >
+                                📊 View Google Sheet
+                            </button>
                         )}
-                    </button>
+                    </>
                 )}
 
                 {/* Not Connected: Show Connect Button */}
@@ -273,6 +303,26 @@ export default function ExportPage({ data, showToast }) {
                             value={urlInput}
                             onChange={(e) => setUrlInput(e.target.value)}
                             placeholder="https://script.google.com/macros/s/.../exec"
+                            style={{
+                                width: '100%',
+                                padding: 12,
+                                borderRadius: 10,
+                                border: '1.5px solid var(--border)',
+                                background: 'var(--card)',
+                                color: 'var(--text)',
+                                fontSize: 13,
+                                marginBottom: 10,
+                                boxSizing: 'border-box',
+                            }}
+                        />
+                        <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 8 }}>
+                            Google Sheet URL (to view your sheet):
+                        </label>
+                        <input
+                            type="url"
+                            value={sheetViewInput}
+                            onChange={(e) => setSheetViewInput(e.target.value)}
+                            placeholder="https://docs.google.com/spreadsheets/d/.../edit"
                             style={{
                                 width: '100%',
                                 padding: 12,

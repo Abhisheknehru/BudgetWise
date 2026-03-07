@@ -14,6 +14,18 @@ export const removeSheetsUrl = () => {
 
 export const isConnected = () => !!getSheetsUrl();
 
+const SHEET_VIEW_KEY = 'bw_sheet_view_url';
+
+export const getSheetViewUrl = () => localStorage.getItem(SHEET_VIEW_KEY) || '';
+
+export const saveSheetViewUrl = (url) => {
+    localStorage.setItem(SHEET_VIEW_KEY, url.trim());
+};
+
+export const removeSheetViewUrl = () => {
+    localStorage.removeItem(SHEET_VIEW_KEY);
+};
+
 /**
  * Build sorted transaction list from app data
  */
