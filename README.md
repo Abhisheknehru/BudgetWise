@@ -1,17 +1,47 @@
-# React + Vite
+# BudgetWise
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A simple, beautiful personal budget tracker built with React. Track your income and expenses, view spending analytics, and sync everything to Google Sheets.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Track Income & Expenses** — Log transactions with categories, notes, and dates
+- **Live Balance** — See your current balance update in real-time
+- **Spending Analytics** — Visual breakdowns by category with charts
+- **Google Sheets Sync** — Auto-syncs every 60 seconds with daily totals and separators
+- **CSV Export** — Download your data as a CSV file
+- **Offline-First** — All data saved locally in your browser (works without internet)
+- **PWA Ready** — Install as an app on your phone
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 19 + Vite
+- Recharts (charts)
+- Google Apps Script (Sheets integration)
+- localStorage (persistence)
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-#BudgetWise
+```bash
+# Install dependencies
+npm install
+
+# Start dev server
+npm run dev
+
+# Build for production
+npm run build
+```
+
+## Google Sheets Integration
+
+See [GOOGLE_SHEETS_SETUP.md](GOOGLE_SHEETS_SETUP.md) for step-by-step instructions to connect your budget data to Google Sheets.
+
+## Deploy
+
+This is a static site — deploy free on Vercel, Netlify, or GitHub Pages:
+
+```bash
+npm run build   # outputs to dist/
+```
+
+Upload the `dist/` folder to any static hosting provider.
