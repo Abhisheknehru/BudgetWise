@@ -144,10 +144,10 @@ export const findOrCreateSheet = async (token) => {
  */
 export const appendExpenseRow = async (token, sheetId, expense) => {
     const { date, category, amount, note, status = 'Logged' } = expense;
-    const range = encodeURIComponent(`${TAB_NAME}!A:E`);
 
+    // Use 'A:E' (no tab name) to avoid sheet-name encoding issues
     const res = await apiFetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A%3AE:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
         token,
         {
             method: 'POST',
@@ -157,12 +157,54 @@ export const appendExpenseRow = async (token, sheetId, expense) => {
         }
     );
 
+    if (res.status === 401) {
+        const e = new Error('Session expired. Please sign in again.');
+        e.code = 401;
+        throw e;
+    }
+
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error?.message || 'Failed to append row to sheet');
     }
 
     return res.json();
+};
+
+// ── Sync all expenses (full rewrite rows 2+) ─────────────────────────────────
+
+export const syncAllExpenses = async (token, sheetId, expenses) => {
+    // Clear existing data rows (keep header in row 1)
+    await apiFetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A2%3AE:clear`,
+        token,
+        { method: 'POST', body: JSON.stringify({}) }
+    );
+
+    if (!expenses.length) return { count: 0 };
+
+    const values = expenses.map((e) => [
+        e.date, e.category, Number(e.amount), e.note || '', 'Logged',
+    ]);
+
+    const res = await apiFetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A2%3AE${expenses.length + 1}?valueInputOption=USER_ENTERED`,
+        token,
+        { method: 'PUT', body: JSON.stringify({ values }) }
+    );
+
+    if (res.status === 401) {
+        const e = new Error('Session expired. Please sign in again.');
+        e.code = 401;
+        throw e;
+    }
+
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || 'Failed to sync expenses');
+    }
+
+    return { count: expenses.length };
 };
 
 // ── Fetch user info ──────────────────────────────────────────────────────────

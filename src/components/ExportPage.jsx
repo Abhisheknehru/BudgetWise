@@ -1,9 +1,25 @@
+import { useState } from 'react';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
+import { syncAllExpenses } from '../utils/googleSheetsApi';
 import { getToday } from '../utils/constants';
 
 export default function ExportPage({ data, showToast }) {
-    const { user, sheetUrl, sheetReady, sheetLoading, signOut } = useGoogleAuth();
+    const { user, accessToken, sheetId, sheetUrl, sheetReady, sheetLoading, signOut } = useGoogleAuth();
     const total = data.expenses.length + data.incomes.length;
+    const [syncing, setSyncing] = useState(false);
+
+    const handleSyncAll = async () => {
+        if (!data.expenses.length) { showToast('No expenses to sync'); return; }
+        setSyncing(true);
+        try {
+            const result = await syncAllExpenses(accessToken, sheetId, data.expenses);
+            showToast(`☁️ Synced ${result.count} expenses to sheet!`);
+        } catch (err) {
+            showToast(`❌ ${err.message}`);
+        } finally {
+            setSyncing(false);
+        }
+    };
 
     // ── Build sorted transaction list ────────────────────────────────────────
 
@@ -184,6 +200,18 @@ export default function ExportPage({ data, showToast }) {
                             <span>✅</span>
                             <span>Expenses sync automatically when you add them</span>
                         </div>
+
+                        {/* Sync All button */}
+                        <button
+                            className="btn btn-primary"
+                            onClick={handleSyncAll}
+                            disabled={syncing}
+                            style={{ padding: 14, fontSize: 15 }}
+                        >
+                            {syncing
+                                ? <><span className="spinner" /> Syncing…</>
+                                : '☁️ Sync All Expenses to Sheet'}
+                        </button>
 
                         {/* View My Sheet button */}
                         {sheetUrl && (

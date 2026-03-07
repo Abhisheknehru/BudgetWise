@@ -14,7 +14,7 @@ export default function App() {
   const [tab, setTab] = useState('home');
   const [toast, setToast] = useState('');
 
-  const { user, accessToken, sheetId, sheetReady, initializing } = useGoogleAuth();
+  const { user, accessToken, sheetId, sheetReady, initializing, signOut } = useGoogleAuth();
   const isLoggedIn = !!user && !!accessToken;
 
   // Persist to localStorage
@@ -87,10 +87,15 @@ export default function App() {
 
     showToast('✅ Expense logged!');
 
-    // Silently sync to Google Sheet if connected
+    // Sync to Google Sheet
     if (isLoggedIn && sheetReady && sheetId && accessToken) {
-      appendExpenseRow(accessToken, sheetId, expense).catch(() => {
-        // Silent fail — data is safe in localStorage
+      appendExpenseRow(accessToken, sheetId, expense).catch((err) => {
+        if (err.code === 401) {
+          signOut();
+          showToast('⚠️ Session expired — please sign in again');
+        } else {
+          showToast('⚠️ Sheet sync failed — go to Export to retry');
+        }
       });
     }
   };
