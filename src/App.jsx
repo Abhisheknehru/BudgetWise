@@ -29,6 +29,39 @@ export default function App() {
     return () => stopAutoSync();
   }, []);
 
+  // PWA install prompt
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      // Show banner if user hasn't dismissed it before
+      if (!localStorage.getItem('bw_install_dismissed')) {
+        setShowInstallBanner(true);
+      }
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const result = await installPrompt.userChoice;
+    if (result.outcome === 'accepted') {
+      showToast('App installed!');
+    }
+    setInstallPrompt(null);
+    setShowInstallBanner(false);
+  };
+
+  const dismissInstall = () => {
+    setShowInstallBanner(false);
+    localStorage.setItem('bw_install_dismissed', '1');
+  };
+
   // Auto-dismiss toast
   useEffect(() => {
     if (toast) {
@@ -69,6 +102,22 @@ export default function App() {
     <>
       {/* Toast Notification */}
       {toast && <div className="toast">{toast}</div>}
+
+      {/* Install Banner */}
+      {showInstallBanner && (
+        <div className="install-banner">
+          <div style={{ flex: 1 }}>
+            <strong>Install BudgetWise</strong>
+            <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2 }}>Add to home screen for quick access</div>
+          </div>
+          <button onClick={handleInstall} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: 13 }}>
+            Install
+          </button>
+          <button onClick={dismissInstall} style={{ background: 'none', border: 'none', color: 'var(--text2)', fontSize: 18, cursor: 'pointer', padding: 4 }}>
+            &times;
+          </button>
+        </div>
+      )}
 
       {/* Low Balance Warning */}
       {balance < 500 && balance !== 0 && (
